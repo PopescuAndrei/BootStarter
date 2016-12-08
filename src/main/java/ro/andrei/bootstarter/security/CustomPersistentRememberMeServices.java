@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import ro.andrei.bootstarter.config.AppProperties;
 import ro.andrei.bootstarter.domain.PersistentToken;
+import ro.andrei.bootstarter.domain.User;
 import ro.andrei.bootstarter.repository.PersistentTokenRepository;
 import ro.andrei.bootstarter.repository.UserRepository;
 
@@ -99,20 +100,23 @@ public class CustomPersistentRememberMeServices extends AbstractRememberMeServic
 
 	@Override
 	protected void onLoginSuccess(HttpServletRequest request, HttpServletResponse response, Authentication successfulAuthentication) {
-
 		String username = successfulAuthentication.getName();
-
 		log.debug("Creating new persistent login for user {}", username);
-		PersistentToken token = userRepository.findOneByUsername(username).map(u -> {
-			PersistentToken t = new PersistentToken();
-			t.setSeries(generateSeriesData());
-			t.setUser(u);
-			t.setTokenValue(generateTokenData());
-			t.setTokenDate(LocalDate.now());
-			t.setIpAddress(request.getRemoteAddr());
-			t.setUserAgent(request.getHeader("User-Agent"));
-			return t;
-		}).orElseThrow(() -> new UsernameNotFoundException("User " + username + " was not found in the database"));
+		
+		User user = userRepository.findOneByUsername(username);
+		PersistentToken token = null;
+		if (user != null) {
+			token = new PersistentToken();
+			token.setSeries(generateSeriesData());
+			token.setUser(user);
+			token.setTokenValue(generateTokenData());
+			token.setTokenDate(LocalDate.now());
+			token.setIpAddress(request.getRemoteAddr());
+			token.setUserAgent(request.getHeader("User-Agent"));
+		} else {
+			throw new UsernameNotFoundException("User " + username + " was not found in the database");
+		}
+		
 		try {
 			persistentTokenRepository.saveAndFlush(token);
 			addCookie(token, request, response);

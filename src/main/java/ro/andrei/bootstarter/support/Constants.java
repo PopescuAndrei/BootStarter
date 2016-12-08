@@ -9,6 +9,10 @@ public final class Constants {
     public static final int DEFAULT_TOKEN_LENGTH = 16;
     public static final int MAX_USER_AGENT_LENGTH = 255;
     
+    // password constants
+    public static final int PASSWORD_MIN_LENGTH = 4;
+    public static final int PASSWORD_MAX_LENGTH = 100;
+    
     //Regex for acceptable logins
     public static final String USERNAME_REGEX = "^[_'.@A-Za-z0-9-]*$";
     public static final String SPRING_PROFILE_DEVELOPMENT = "dev";

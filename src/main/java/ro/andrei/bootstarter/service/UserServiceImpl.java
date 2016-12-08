@@ -4,7 +4,6 @@ import static ro.andrei.bootstarter.security.AuthoritiesConstants.USER;
 
 import java.time.LocalDate;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -43,6 +42,43 @@ public class UserServiceImpl extends EntityServiceImpl<User> implements UserServ
 
     @Autowired
     private AuthorityRepository authorityRepository;
+    
+    @Override
+    @Transactional(readOnly = true)
+    public User findUserWithAuthoritiesByUsername(String username) {
+    	return userRepository.findOneByUsername(SecurityUtils.getCurrentUserUsername());
+    	// map(user -> { user.getAuthorities().size(); return user });
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public User findUserByEmail(String email) {
+    	User user = userRepository.findOneByEmail(email);
+    	if (user!=null){
+    		user.getAuthorities().size(); //eagerly load the association
+    	}
+    	return user;
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public User findUserWithAuthorities(Long id) {
+        User user = userRepository.findOne(id);
+        if(user!=null) {
+        	user.getAuthorities().size(); // eagerly load the association
+        }
+        return user;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public User findUserWithAuthorities() {
+    	User user = userRepository.findOneByUsername(SecurityUtils.getCurrentUserUsername());
+        if (user!=null) {
+            user.getAuthorities().size(); // eagerly load the association
+         }
+         return user;
+    }
     
     @Override
     @Transactional
@@ -89,40 +125,15 @@ public class UserServiceImpl extends EntityServiceImpl<User> implements UserServ
     @Override
     @Transactional
     public void changePassword(String password) {
-        userRepository.findOneByUsername(SecurityUtils.getCurrentUserUsername()).ifPresent(user -> {
-            String encryptedPassword = passwordEncoder.encode(password);
+    	User user = userRepository.findOneByUsername(SecurityUtils.getCurrentUserUsername());
+    	if(user != null) {
+    		String encryptedPassword = passwordEncoder.encode(password);
             user.setPassword(encryptedPassword);
-            log.debug("Changed password for User: {}", user);
-        });
-    }
-    
-    @Override
-    @Transactional(readOnly = true)
-    public Optional<User> getUserWithAuthoritiesByUsername(String username) {
-        return userRepository.findOneByUsername(username).map(user -> {
-            user.getAuthorities().size();
-            return user;
-        });
-    }
-    
-    @Override
-    @Transactional(readOnly = true)
-    public User getUserWithAuthorities(Long id) {
-        User user = userRepository.findOne(id);
-        user.getAuthorities().size(); // eagerly load the association
-        return user;
-    }
 
-    @Override
-    @Transactional(readOnly = true)
-    public User getUserWithAuthorities() {
-        Optional<User> optionalUser = userRepository.findOneByUsername(SecurityUtils.getCurrentUserUsername());
-        User user = null;
-        if (optionalUser.isPresent()) {
-          user = optionalUser.get();
-            user.getAuthorities().size(); // eagerly load the association
-         }
-         return user;
+            log.debug("Changed password for User: {}", user);	
+    	} else {
+    		log.debug("User not found");
+    	}
     }
     
     /**

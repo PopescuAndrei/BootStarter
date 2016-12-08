@@ -1,18 +1,17 @@
 package ro.andrei.bootstarter.security;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.security.core.GrantedAuthority;
 
 import ro.andrei.bootstarter.domain.User;
 import ro.andrei.bootstarter.repository.UserRepository;
@@ -27,19 +26,15 @@ public class UserDetailsService implements org.springframework.security.core.use
 
 	@Override
 	@Transactional
-	public UserDetails loadUserByUsername(final String login) {
-		log.debug("Authenticating {}", login);
-		String lowercaseLogin = login.toLowerCase();
-		Optional<User> userFromDatabase = userRepository.findOneByUsername(lowercaseLogin);
-		return userFromDatabase.map(user -> {
-			//optional, check if active
-			List<GrantedAuthority> grantedAuthorities = user.getAuthorities()
-					.stream().map(authority -> new SimpleGrantedAuthority(authority.getName()))
+	public UserDetails loadUserByUsername(final String username) {
+		log.debug("Authenticating {}", username);
+		String lowercaseLogin = username.toLowerCase();
+		User user = userRepository.findOneByUsername(lowercaseLogin);
+		if (user != null) {
+			List<GrantedAuthority> grantedAuthorities = user.getAuthorities().stream().map(authority -> new SimpleGrantedAuthority(authority.getName()))
 					.collect(Collectors.toList());
-			
 			return new org.springframework.security.core.userdetails.User(lowercaseLogin, user.getPassword(), grantedAuthorities);
-		})
-		.orElseThrow(
-				() -> new UsernameNotFoundException("User " + lowercaseLogin + " was not found in the " + "database"));
+		}
+		throw new UsernameNotFoundException("User " + lowercaseLogin + " was not found in the " + "database");
 	}
 }
